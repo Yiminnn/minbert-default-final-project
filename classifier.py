@@ -47,8 +47,8 @@ class BertSentimentClassifier(torch.nn.Module):
                 param.requires_grad = True
 
         # Create any instance variables you need to classify the sentiment of BERT embeddings.
-        ### TODO
-        raise NotImplementedError
+        self.classifier = torch.nn.Linear(768, self.num_labels)
+
 
 
     def forward(self, input_ids, attention_mask):
@@ -56,8 +56,10 @@ class BertSentimentClassifier(torch.nn.Module):
         # The final BERT contextualized embedding is the hidden state of [CLS] token (the first token).
         # HINT: You should consider what is an appropriate return value given that
         # the training loop currently uses F.cross_entropy as the loss function.
-        ### TODO
-        raise NotImplementedError
+        outputs = self.bert(input_ids, attention_mask)
+        cls_output = outputs['last_hidden_state'][:, 0, :]
+        logits = self.classifier(cls_output)
+        return logits
 
 
 
@@ -304,7 +306,7 @@ def test(args):
         model.load_state_dict(saved['model'])
         model = model.to(device)
         print(f"load model from {args.filepath}")
-        
+
         dev_data = load_data(args.dev, 'valid')
         dev_dataset = SentimentDataset(dev_data, args)
         dev_dataloader = DataLoader(dev_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=dev_dataset.collate_fn)
@@ -312,7 +314,7 @@ def test(args):
         test_data = load_data(args.test, 'test')
         test_dataset = SentimentTestDataset(test_data, args)
         test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=args.batch_size, collate_fn=test_dataset.collate_fn)
-        
+
         dev_acc, dev_f1, dev_pred, dev_true, dev_sents, dev_sent_ids = model_eval(dev_dataloader, model, device)
         print('DONE DEV')
         test_pred, test_sents, test_sent_ids = model_test_eval(test_dataloader, model, device)
